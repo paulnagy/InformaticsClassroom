@@ -1,0 +1,33 @@
+{% block content %}
+    <div>
+        <form method="POST" action="">
+            {{ form.hidden_tag() }}
+            <fieldset >
+                <legend>Submit Answer</legend>
+                <div >
+                    {{ form.class_name.label() }}
+                    {{ form.class_name }}
+                </div>
+                <div >
+                    {{ form.module.label() }}
+                    {{ form.module }}
+                </div>
+                <div >
+                    {{ form.team.label() }}
+                    {{ form.team }}
+                </div>
+                <div >
+                    {{ form.question_num.label() }}
+                    {{ form.question_num }}
+                </div>
+                <div >
+                    {{ form.answer_num.label() }}
+                    {{ form.answer_num }}
+                </div>
+            </fieldset>
+            <div >
+                {{ form.submit() }}
+            </div>
+        </form>
+    </div>
+{% endblock content %}

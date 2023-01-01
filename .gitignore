@@ -1,0 +1,5 @@
+informatics_classroom/config.py
+flask_session/
+.venv/
+__pycache__/
+.vscode/

@@ -1,0 +1,35 @@
+
+{% block content %}
+    <div>
+        <form method="POST" action="">
+            {{ form.hidden_tag() }}
+            <fieldset >
+                <legend>Submit Answer</legend>
+                <div >
+                    {{ form.wg1.label() }}
+                    {{ form.wg1 }}
+                </div>
+                <div >
+                    {{ form.wg2.label() }}
+                    {{ form.wg2 }}
+                </div>
+            </fieldset>
+            <div >
+                {{ form.submit() }}
+            </div>
+        </form>
+    </div>
+{% endblock content %}
+
+<!doctype html>
+<html>
+ <body>
+  <h1>OHDSI Working Group Collaborations</h1>
+  <div id='chart' class='chart'”></div>
+</body>
+<script src='https://cdn.plot.ly/plotly-latest.min.js'></script>
+<script type='text/javascript'>
+  var graphs = {{graphJSON | safe}};
+  Plotly.plot('chart',graphs,{});
+</script>
+</html>

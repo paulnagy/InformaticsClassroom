@@ -1,0 +1,50 @@
+<head>
+    <!-- CSS only -->
+        <link href="/static/style.css" rel="stylesheet">
+</head>
+<div style="background-color:#06404b"><h1 style="color:white"><br/>Society of Imaging Informatics in Medicine<br><br></h1></div>
+<body>
+
+
+
+{% block container %} 
+  <table>
+    <tr><th colspan=7 align="center"><h2>{{ model_name }}</h2></th></tr>
+  <tr>
+    <td colspan=3><img src="https://bidsclassroomfigures.blob.core.windows.net/figures/kidneyMRISegmentation.png"></td>
+    <td colspan=4 align="center">
+    <table class="table">
+    <tr class="table__header"><th colspan=7 textalign='center'>SIIM Leadership Board</th></tr>
+    <tr class="table__header">
+      <th>Team Name</th>
+      <th>Tries</th>
+      <th>Dice Metric</th>
+    {% for id, row in Leader_Board.iterrows() %} 
+      <tr class="table__row">
+        <td class="table__cell">{{ row['team'] }}</td>
+        <td class="table__cell">{{ row['count'] }}</td>
+        <td class="table__cell">{{ row['max']|round(4) }}</td>
+      </tr>
+    {% endfor %} 
+    </table></td>
+  </tr>
+  <tr><th colspan=7 align="center"><h2>Hyperparameter frequency analysis</h2></th></tr>
+  <tr class="table__row">
+  {% for item in fields %} 
+  <td class="table__cell">
+    <table class="table">
+      <th class='table__header' colspan="2">{{ item}}</th>
+      {% for i, val in data[item].value_counts().iteritems() %}
+      <tr>
+        <td class="table__cell">{{ i }}</td>
+        <td class="table__cell">{{ val }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </td>
+  {% endfor %} 
+</tr> 
+</table>
+{% endblock %}  
+
+</body>

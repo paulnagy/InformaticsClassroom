@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="/static/style.css" rel="stylesheet">
+</head>
+<body>
+    <h1>Biomedical Informatics Student Center</h1>
+    <h2>Welcome {{ user.get('preferred_username').split('@')[0] }}!</h2>
+
+    <li><a href="/logout">Logout</a></li>
+    <hr>
+    <footer style="text-align: right">Powered by MSAL Python {{ version }}</footer>
+     {% block content %}
+    <div>
+        <form method="POST" action="">
+            {{ form.hidden_tag() }}
+            <fieldset >
+                <legend>Select Course</legend>
+                <div >
+                    {{ form.wg1.label() }}
+                    {{ form.wg1 }}
+                </div>
+            </fieldset>
+            <div >
+                {{ form.submit() }}
+            </div>
+        </form>
+    </div>
+{% endblock content %}
+<hr>
+{% if items|length >0 %}
+<div>
+    <table class="table">
+        <tr class="table__header"><th colspan="100%" textalign='center'>Course Modules for {{ items[0]['class'] }}</th></tr>
+        <tr class="table__header">
+          <th>Module</th><th colspan="100%" textalign='center'>Questions</th>
+        {% for item in items: %} 
+          <tr class="table__row">
+            <td class="table__cell">{{ item['module'] }}</td>
+            {% for cell_item in item['questions']:%}
+                {% if 'correct' in cell_item %}
+                 <td bgcolor="#008000">{{ cell_item['question_num'] }}</td>
+                {% else %}
+                <td bgcolor="#CCCC00">{{ cell_item['question_num'] }}</td>
+                {% endif %}
+            {% endfor %}
+          </tr>
+        {% endfor %}
+    </table> 
+</div>
+{% endif %}
+</body>
+
+</html>

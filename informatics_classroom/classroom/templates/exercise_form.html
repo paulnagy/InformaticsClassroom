@@ -1,0 +1,14 @@
+{% block content %}
+    <div>
+        <form method="POST" action="" role="form">
+            {{ form.hidden_tag() }}
+                  {% for question in form.q %}
+                <div >
+                    {{ question.form.a1.label }}<br>
+                    {{ question.form.a1}}<br>
+                </div>
+                {% endfor %}
+                {{ form.s}}
+        </form>
+    </div>
+{% endblock content %}

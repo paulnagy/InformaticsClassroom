@@ -1,0 +1,32 @@
+{% extends "layout.html" %}
+   
+{% block content %}
+
+<div class="row">
+    <div class="col-md-6 offset-md-3">
+        <form name="login" action="" method="post" novalidate>
+            <fieldset class="form-group">
+                <legend>{{title}}</legend> 
+                {{ form.hidden_tag() }}
+
+                <p>
+                    {{ form.class_name.label }}<br>
+                    {{ form.class_name(size=10) }}
+                </p>
+                <p>
+                    {{ form.exercise.label }}<br>
+                    {{ form.exercise(size=10) }}
+                </p>
+                <p>
+                    {{ form.team_name.label }}<br>
+                    {{ form.team_name(size=25) }}
+                </p>
+                <p>
+                    {{ form.submit() }}
+                </p>
+            </fieldset>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

@@ -81,7 +81,7 @@ def assignment(exercise):
         #Test if authenticated user is coming from an authorized domain
         return redirect(url_for("auth_bp.login"))
     if len(exercise)==0:
-        if 'return_to' is session.keys():
+        if 'return_to' in session.keys():
             exercise=session['exercise']
     user_name=session['user'].get('preferred_username').split('@')[0]
     container=init_cosmos('quiz','bids-class')
@@ -116,21 +116,28 @@ def assignment(exercise):
 
 @classroom_bp.route("/exercise_review/<exercise>")
 def exercise_review(exercise):
-    """Exercise Review home"""
+    """Exercise Review shows all the students and their progress on an Exercise"""
     if not session.get("user"):
         #Test if user session is set
         return redirect(url_for("auth_bp.login"))
     if not session['user'].get('preferred_username').split('@')[1][:2]==Keys.auth_domain:
         #Test if authenticated user is coming from an authorized domain
         return redirect(url_for("auth_bp.login"))
+    
+    #Test if user is an authorized user
     user_name=session['user'].get('preferred_username').split('@')[0]
-    course_name=str(exercise).split('_')[0]
-    if not user_name in Keys.auth_users:
-        # Test if user is authorized
-        return redirect(url_for("auth_bp.login"))
-    if not course_name in Keys.auth_users[user_name]:
-        # Test if user is authorized for this course
-         return redirect(url_for("auth_bp.login"))
+    course_name=str(exercise).split('_')[0]   
+    authorized_user=False
+    container=init_cosmos('quiz','bids-class')
+    items=container.read_item(item="auth_users",partition_key="auth")
+    for name in items['users']:
+        if user_name in name:
+        # Test if user is in list of authorized users
+            if course_name in name[user_name]:
+                authorized_user=True
+    if not authorized_user:
+        return redirect(url_for("auth_bp.login"))      
+
     # Step 2 get the exercise Structure
     container=init_cosmos('quiz','bids-class')
     #Query quizes in cosmosdb to get the structure for this assignment
@@ -149,7 +156,9 @@ def exercise_review(exercise):
     df1=df.groupby(['team','question']).agg({'correct':np.max}).reset_index()
     df2=df1.pivot(index='team',columns='question').reset_index()
     df2['score']=df2.sum(axis=1)
-    return render_template("exercise_review.html",title='Exercise Review',user=session["user"],tables=[df2.to_html(classes='data',index=False)], exercise=exercise)
+    df1=df.groupby(['team','question'])['answer'].count().reset_index()
+    df3=df1.pivot(index='team',columns='question').reset_index()
+    return render_template("exercise_review.html",title='Exercise Review',user=session["user"],tables=[df2.to_html(classes='data',index=False),df3.to_html(classes='data',index=False)], exercise=exercise)
 
 @classroom_bp.route("/exercise_form/<exercise>",methods=['GET','POST'])
 def exercise_form(exercise):

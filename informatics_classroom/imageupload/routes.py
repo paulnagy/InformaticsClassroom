@@ -54,5 +54,6 @@ def upload_photos():
             filenames += file.filename + "<br /> "
         except Exception as e:
             print(e)
-            print("Ignoring duplicate filenames") # ignore duplicate filenames      
+            print("Ignoring duplicate filenames") # ignore duplicate filenames  
+        print(filenames)    
     return redirect('/figures')     

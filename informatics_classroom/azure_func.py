@@ -23,3 +23,21 @@ def init_blob_service_client():
         print("Creating container...")
         container_client = blob_service_client.create_container(Keys.blob_container_name) # create a container in the storage account if it does not exist
     return container_client
+
+def load_answerkey(container_name,db_name):
+    container=init_cosmos(container_name,db_name)
+    query = "SELECT * FROM c"
+    items = list(container.query_items(
+        query=query,
+        enable_cross_partition_query=True
+    ))
+    answerkey={}
+    for item in items:
+        answerkey[item["id"]]=item
+    for key in answerkey.keys():
+        if 'module' in answerkey[key]:
+            for question in answerkey[key]['questions']:   
+                question_num=question['question_num']
+                correct_answer=question['correct_answer']
+                answerkey[key][question_num]=correct_answer
+    return answerkey

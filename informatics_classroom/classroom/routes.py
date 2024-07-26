@@ -4,13 +4,14 @@ from wtforms import StringField, PasswordField, SubmitField, BooleanField, Selec
 import numpy as np
 import pandas as pd
 from azure.cosmosdb.table.tableservice import TableService
-from informatics_classroom.azure_func import init_cosmos
+from informatics_classroom.azure_func import init_cosmos,load_answerkey
 from informatics_classroom.classroom import classroom_bp
 from informatics_classroom.classroom.forms import AnswerForm, ExerciseForm
 from informatics_classroom.config import Keys
 
 ClassGroups=sorted(['PMAP','CDA','FHIR','OHDSI'])
 
+answerkey=load_answerkey('quiz','bids-class')
 
 @classroom_bp.route('/home')
 def landingpage():
@@ -35,27 +36,40 @@ def submit_answer():
         partition_key=request.form['class']
     else:
         partition_key=request.form['class_name']
-    module_name=request.form['module']
-    item_name=partition_key+"_"+ module_name
-    container=init_cosmos('quiz','bids-class')
-    output=container.read_item(item=item_name,partition_key=partition_key)
-    questions=output['questions']
-    question_num=int(request.form['question_num'])-1
+    module_num=request.form['module']
+    module_name=partition_key+"_"+ module_num
+    
+    
+
+    #container=init_cosmos('quiz','bids-class')
+    #output=container.read_item(item=item_name,partition_key=partition_key)
+    #questions=output['questions']
+  
+    question_num=int(request.form['question_num'])
     answer_num=request.form['answer_num']
-    #Get the max RowKey and increment to make unique
+
+    if module_name in answerkey.keys():
+        questions=answerkey[module_name]  
+
+    #Logging - Get the max RowKey and increment to make unique
     table_service = TableService(account_name=Keys.account_name, account_key=Keys.storage_key)
     RowKey=str(len(list(table_service.query_entities('attempts')))+1)
 
-    attempt={'PartitionKey':item_name,
+    attempt={'PartitionKey':module_name,
             'RowKey':RowKey,
             'course':partition_key,
             'module': module_name,
             'team': request.form['team'],
-            'question': request.form['question_num'],
+            'question': question_num,
             'answer':str(answer_num)
     } 
-          
-    if str(questions[question_num]['correct_answer'])==str(answer_num):
+
+    #Checks to see if its an open question, if it is empty answer_num so it will return tru
+    #Note the attempt dictionary already logged the actual answer  
+    if len(questions[question_num])==0:
+        answer_num=""  
+
+    if str(questions[question_num])==str(answer_num):        
         #Log success for team
         nextquestion=''
         attempt['correct']=1
@@ -123,6 +137,51 @@ def exercise_review(exercise):
     if not session['user'].get('preferred_username').split('@')[1][:2]==Keys.auth_domain:
         #Test if authenticated user is coming from an authorized domain
         return redirect(url_for("auth_bp.login"))
+    #Test if user is an authorized user
+    user_name=session['user'].get('preferred_username').split('@')[0]
+    course_name=str(exercise).split('_')[0]   
+    authorized_user=False
+    container=init_cosmos('quiz','bids-class')
+    items=container.read_item(item="auth_users",partition_key="auth")
+    for name in items['users']:
+        if user_name in name:
+        # Test if user is in list of authorized users
+            if course_name in name[user_name]:
+                authorized_user=True
+    if not authorized_user:
+        return redirect(url_for("auth_bp.login"))      
+    # Step 2 get the exercise Structure
+    container=init_cosmos('quiz','bids-class')
+    #Query quizes in cosmosdb to get the structure for this assignment
+    query = "SELECT * FROM c where c.id='{}'".format(exercise.lower())
+    items = list(container.query_items(
+        query=query,
+        enable_cross_partition_query=True )) 
+    if len(items)==0:
+        return "No assignment found with the name of {}".format(exercise)
+    assignment=items[0]['questions']
+    # Step 3 get all the attempts made for that exercise
+    table_service = TableService(account_name=Keys.account_name, account_key=Keys.storage_key)
+    tasks = table_service.query_entities('attempts', filter=f"PartitionKey eq '{exercise}'") 
+    df=pd.DataFrame(tasks)
+    # Step 4 construct dataframe to send to html page
+    df1=df.groupby(['team','question']).agg({'correct':'max'}).reset_index()
+    df2=df1.pivot_table(index='team',columns='question',values='correct').reset_index()
+    df2['score']=df2.iloc[:,1:].sum(axis=1)
+    df1=df.groupby(['team','question'])['answer'].count().reset_index()
+    df3=df1.pivot_table(index='team',columns='question')
+    return render_template("exercise_review.html",title='Exercise Review',user=session["user"],tables=[df2.to_html(classes='data',index=False),df3.to_html(classes='data',index=False)], exercise=exercise)
+
+
+@classroom_bp.route("/exercise_review_log/<exercise>/<questionnum>")
+def exercise_review_open(exercise,questionnum):
+    """Exercise Review shows all the students and their progress on an Exercise"""
+    if not session.get("user"):
+        #Test if user session is set
+        return redirect(url_for("auth_bp.login"))
+    if not session['user'].get('preferred_username').split('@')[1][:2]==Keys.auth_domain:
+        #Test if authenticated user is coming from an authorized domain
+        return redirect(url_for("auth_bp.login"))
     
     #Test if user is an authorized user
     user_name=session['user'].get('preferred_username').split('@')[0]
@@ -153,12 +212,9 @@ def exercise_review(exercise):
     tasks = table_service.query_entities('attempts', filter=f"PartitionKey eq '{exercise}'") 
     df=pd.DataFrame(tasks)
     # Step 4 construct dataframe to send to html page
-    df1=df.groupby(['team','question']).agg({'correct':np.max}).reset_index()
-    df2=df1.pivot(index='team',columns='question').reset_index()
-    df2['score']=df2.sum(axis=1)
-    df1=df.groupby(['team','question'])['answer'].count().reset_index()
-    df3=df1.pivot(index='team',columns='question').reset_index()
-    return render_template("exercise_review.html",title='Exercise Review',user=session["user"],tables=[df2.to_html(classes='data',index=False),df3.to_html(classes='data',index=False)], exercise=exercise)
+    df2=df[df.question==questionnum]
+    return render_template("exercise_review.html",title='Exercise Review',user=session["user"],tables=[df2.to_html(classes='data',index=False)], exercise=exercise)
+
 
 @classroom_bp.route("/exercise_form/<exercise>",methods=['GET','POST'])
 def exercise_form(exercise):
